@@ -11,8 +11,9 @@ function World (options) {
     x: 80,
     y: 45
   };
-  this.initialPopulation = options.initialPopulation || 20;
-  this.maxPopulation = options.maxPopulation || 80;
+  this.civilization = 0;
+  this.initialPopulation = options.initialPopulation || 15;
+  this.maxPopulation = options.maxPopulation || 100;
   this.serialize();
 };
 
@@ -48,12 +49,18 @@ World.prototype.addInhabitant = function (parentA, parentB, opts) {
 
 World.prototype.step = function (delta) {
   if (this.stepping) return;
-  console.log(Object.keys(this.inhabitants).length);
-  console.log(delta);
+
+  var population = Object.keys(this.inhabitants).length;
+  //console.log(population);
+  //console.log(delta);
 
   this.stepping = true;
 
   var self = this;
+  if (population === 0) {
+    this.summonInhabitants(this.initialPopulation);
+    this.civilization++;
+  }
   this.serialize(function(){
     self.stepping = false;
   });

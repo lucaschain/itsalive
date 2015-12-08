@@ -1,4 +1,5 @@
 var Engine = require("./engine.js");
+var brain = require("brain");
 var Math = require("./math.js");
 
 function Garp (parentA, parentB, options) {
@@ -23,20 +24,29 @@ function Garp (parentA, parentB, options) {
   this.world = this.options.world || global.GarpWorld;
   this.x = this.options.x || this.world.randomX();
   this.y = this.options.y || this.world.randomY();
+  this.net = new brain.NeuralNetwork();
+  this.isVirgin = true;
 
   this.state = "idle";
   this.base = [];
+  this.partnerCache = {};
+  this.friction = .95;
+  this.boostFactor = 20;
+  this.accel = {
+    x: 0,
+    y: 0
+  };
   this.stepping = false;
   
   this.reproductionDistance = 1;
-  this.reproductionRestTime = 5;
+  this.reproductionRestTime = 10;
   this.reproductionCooldown = this.reproductionRestTime;
 
-  this.nextRoamCooldown = 0;
-  this.nextRoamTime = 5;
+  this.nextBoostCooldown = 0;
+  this.nextBoostTime = 2;
 
   this.nature = (Math.random() >= 0.5) ? 1 : -1;
-  this.lifeRemaining = 25;
+  this.lifeRemaining = 100;
   
   this.generateID();
   this.generateBase(parentA, parentB);
@@ -52,13 +62,23 @@ Garp.prototype.generateBase = function (parentA, parentB) {
     ? parentB.base 
     : [0,0,0,0,0,0,0,0,0,0,0,0,0];
 
+  var randomFactor = 0.1;
+
   var newBase = [];
 
   for (var i = 0; i < 13; i++) {
     var a = baseA[i];
     var b = baseB[i];
-
-    var c = Math.abs(Math.random() * (a - b) + b);
+    
+    var c, diff;
+    if (Math.random() >= .5) {
+      diffPart = (a - b) / 5;
+      c = a + diffPart;
+    } else {
+      diffPart = (a - b) / 5;
+      c = b + diffPart;
+    }
+    
     newBase.push(c);
   }
   
@@ -67,12 +87,11 @@ Garp.prototype.generateBase = function (parentA, parentB) {
 
 Garp.prototype.rise = function (parentA, parentB) {
   if (parentA) {
-    parentA.newChild();
+    parentA.newChild(parentB, this);
   }
   if (parentB) {
-    parentB.newChild();
+    parentB.newChild(parentA, this);
   }
-
 
   var self = this;
   this.engine = new Engine(function(delta, ups){
@@ -88,12 +107,14 @@ Garp.prototype.step = function (delta) {
   var recentlyReproduced = this.reproductionCooldown > 0;
 
   // Anyone in sight?
-  if (visionElements.length && !recentlyReproduced) {
+  if (visionElements.length) {
     for (var v in visionElements) {
       var ve = visionElements[v];
       var distance = ve.distance;
 
-      if (distance <= this.reproductionDistance){
+      if (distance <= this.reproductionDistance &&
+        !recentlyReproduced &&
+        !ve.el.recentlyReproduced){
         this.state = "reproducing";
         this.reproduce(ve.el);
       } else {
@@ -110,14 +131,13 @@ Garp.prototype.step = function (delta) {
     } else {
       this.state = "wandering";
     }
-    var attraction = this.calculateRandomForce();
-    this.move(attraction, delta);
+    this.randomBoost();
   } 
 
   this.growOld(delta);
   this.reproductionCooldown -= delta;
-  this.nextRoamCooldown -= delta;
-
+  this.nextBoostCooldown -= delta;
+  this.applyMovement(delta);
   this.stepping = false;
 }
 
@@ -145,28 +165,29 @@ Garp.prototype.seek = function () {
   var arr = this.world.inhabitantsNearMe(this);
   var available = [];
   for (var a in arr) {
-    if (arr[a].el.state !== "reproducing" && arr[a].el.state !== "reproduced"){
-      available.push(arr[a]);
-    }
+    available.push(arr[a]);
   }
   return available;
 };
 
-Garp.prototype.calculateRandomForce = function () {
-  if (this.nextRoamCooldown > 0) {
-    return this.randomForce;
-  }
-  this.randomForce = {
+Garp.prototype.randomBoost = function (delta) {
+  if (this.nextBoostCooldown > 0) return;
+  var randomForce = {
     x: ((Math.random() * 2) - 1) * 5,
     y: ((Math.random() * 2) - 1) * 5
   };
-  this.nextRoamCooldown = (Math.random() * this.nextRoamTime) + this.nextRoamTime / 2;
-  return this.randomForce;
+  this.nextBoostCooldown = (Math.random() * this.nextBoostTime) + this.nextBoostTime / 2;
+  this.boostTo(randomForce);
 };
 
 Garp.prototype.calculateNaturalForce = function(el, distance) {
   var naturalBaseA = this.naturalBase();
   var naturalBaseB = el.naturalBase();
+
+  var empathy = 1;
+  if (!this.isVirgin) {
+    empathy = this.getEmpathy(el);
+  }
 
   var sum = 0;
   var totalProps = naturalBaseA.length;
@@ -181,7 +202,18 @@ Garp.prototype.calculateNaturalForce = function(el, distance) {
   var vect = Math.forceVector(this, el, sum);
 
   return vect;
+};
 
+Garp.prototype.getEmpathy = function(el) {
+  if (typeof this.partnerCache[el.id] !== "undefined") {
+    return this.partnerCache[el.id];
+  }
+  var empathyData = el.base.slice();
+  var BNature = el.nature > 0 ? 1 : 0;
+  empathyData.push(BNature);
+  var empathy = this.net.run(empathyData)[0];
+  this.partnerCache[el.id] = empathy;
+  return empathy;
 };
 
 Garp.prototype.naturalBase = function () {
@@ -199,23 +231,36 @@ Garp.prototype.naturalBase = function () {
   return naturalBase;
 };
 
+Garp.prototype.boostTo = function(force) {
+  this.accel.x += force.x * this.boostFactor;
+  this.accel.y += force.y * this.boostFactor;
+};
 
-Garp.prototype.move = function(attraction, delta) {
-  this.x += attraction.x * delta;
-  this.y += attraction.y * delta;
+
+Garp.prototype.move = function(attraction) {
+  this.accel.x += attraction.x * 0.2
+  this.accel.y += attraction.y * 0.2;
+};
+
+Garp.prototype.applyMovement = function(delta) {
+  this.accel.x *= this.friction;
+  this.accel.y *= this.friction;
+
+  this.x += this.accel.x * delta;
+  this.y += this.accel.y * delta;
 
   if (this.x > this.world.size.x)
-    this.x = this.world.size.x;
-  else if (this.x < 0) 
     this.x = 0;
+  else if (this.x < 0) 
+    this.x = this.world.size.x;
   
   
   if (this.y > this.world.size.y)
-    this.y = this.world.size.y;
-  else if (this.y < 0) 
     this.y = 0;
-  
+  else if (this.y < 0) 
+    this.y = this.world.size.y;
 };
+
 
 Garp.prototype.die = function () {
   this.state = "dead";
@@ -252,7 +297,35 @@ Garp.prototype.serialize = function () {
   };
 };
 
-Garp.prototype.newChild = function () {};
+Garp.prototype.newChild = function (otherParent, child) {
+  var trainData = {
+    input: otherParent.base.slice(),
+    output: []
+  };
+  var nature = otherParent.nature > 0 ? 1 : 0;
+  trainData.input.push(nature);
+
+  var childBase = child.base;
+  var childSum = 0;
+  for (var b in childBase) {
+    childSum += childBase[b];
+  }
+
+  var equilibrium = childBase.length / 2;
+  var sickness = Math.abs(equilibrium - childSum);
+  if (sickness < 2) {
+    trainData.output.push(1);
+  } else {
+    trainData.output.push(0);
+  }
+
+  if (this.isVirgin)
+    this.isVirgin = false;
+  
+  this.net.train(trainData);
+
+  this.partnerCache = {};
+};
 
 Garp.prototype.sightRadius = function () {
   return 7;

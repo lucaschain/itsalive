@@ -39,11 +39,11 @@ Camera.prototype.draw = function () {
   this.screen.fillRect(0, 0, window.state.size.x * this.proportionRatio, window.state.size.y * this.proportionRatio);
   
   for (var g in garps) {
-    this.drawGarpLines(garps[g]);
+    //this.drawGarpLines(garps[g]);
   }
   for (var g in garps) {
     this.drawGarpBody(garps[g]);
-    this.drawGarpAura(garps[g]);
+    //this.drawGarpAura(garps[g]);
   }
 };
 
