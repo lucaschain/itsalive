@@ -23,7 +23,7 @@ Engine.prototype.stop = function () {
 Engine.prototype.update = function () {
   var now = new Date();
   var msPassed = now - this.lastUpdate;
-  var delta = msPassed / 1000;
+  var delta = msPassed / (1000 * 4);
   var ups = 1 / delta;
   if (ups > (this.maxUps * this.upsLimitRate)) return;
   this.lastUpdate = now;

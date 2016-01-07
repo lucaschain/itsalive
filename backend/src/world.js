@@ -13,7 +13,7 @@ function World (options) {
   };
   this.civilization = 0;
   this.initialPopulation = options.initialPopulation || 15;
-  this.maxPopulation = options.maxPopulation || 100;
+  this.maxPopulation = options.maxPopulation || 300;
   this.serialize();
 };
 

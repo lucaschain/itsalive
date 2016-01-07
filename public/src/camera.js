@@ -1,6 +1,6 @@
 function Camera (options) {
 	options = options || {};
-  this.proportionRatio = options.proportionRatio || 20;
+  this.proportionRatio = options.proportionRatio || 5;
   this.currentAngle = 0;
   
   if (!window.state) return;
@@ -39,11 +39,11 @@ Camera.prototype.draw = function () {
   this.screen.fillRect(0, 0, window.state.size.x * this.proportionRatio, window.state.size.y * this.proportionRatio);
   
   for (var g in garps) {
-    //this.drawGarpLines(garps[g]);
+    this.drawGarpLines(garps[g]);
   }
   for (var g in garps) {
     this.drawGarpBody(garps[g]);
-    //this.drawGarpAura(garps[g]);
+    this.drawGarpAura(garps[g]);
   }
 };
 
@@ -104,7 +104,7 @@ Camera.prototype.drawGarpAura = function (garp) {
   var lifeRatio = garp.lifeRemaining / 15;
   var x = garp.x * this.proportionRatio;
   var y = garp.y * this.proportionRatio;
-  var radius = lifeRatio * this.proportionRatio * 2;
+  var radius = lifeRatio * this.proportionRatio / 3;
 	
   var radgrad = this.screen.createRadialGradient(x, y, radius / 2, x, y, radius);
   radgrad.addColorStop(0, style);

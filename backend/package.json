@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "brain": "^0.7.0",
+    "browserify": "^12.0.1",
     "node-watch": "^0.3.4",
     "socket.io": "^1.3.7"
   }
