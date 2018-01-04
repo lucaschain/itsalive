@@ -6,7 +6,7 @@ export default class Garp {
     this.state = 'idle'
     this.base = []
     this.stepping = false
-    this.reproduction = new Reproduction()
+
 
     this.nextBoostCooldown = 0
     this._initializeParent(parentA)
@@ -197,11 +197,6 @@ export default class Garp {
     this.world.removeCorpse(this.id)
   }
 
-  _initializeID () {
-    this.id = Math.random().toString(35).substring(2, 40)
-  }
-
-
   serialize () {
     return {
       x: this.x,
@@ -219,12 +214,17 @@ export default class Garp {
     return 7
   }
 
+  _initializeID () {
+    this.id = Math.random().toString(35).substring(2, 40)
+  }
+
   _initializeNature () {
     this.nature = (Math.random() >= 0.5) ? 1 : -1
   }
 
   _initializeDefaultOptions (options) {
     this.options = options || {}
+    this.reproduction = this.options.reproduction || new Reproduction()
     this.world = this.options.world
   }
 
