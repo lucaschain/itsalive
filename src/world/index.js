@@ -8,11 +8,11 @@ export default class World {
       ...this.defaults,
       ...options
     }
-    this.engine = engine
     this.inhabitants = {}
     this.size = options.size
     this.initialPopulation = options.initialPopulation
     this.maxPopulation = options.maxPopulation
+    this._initializeEngine(engine)
   }
 
   get defaults () {
@@ -26,16 +26,13 @@ export default class World {
     }
   }
 
-  bigBang () {
+  generateLife () {
     this._summonInhabitants(this.initialPopulation)
-    this.engine.subscribe('world', (delta, ups) => {
-      this.step(delta)
-    })
     return this
   }
 
   addInhabitant (parentA, parentB, opts) {
-    if (this._population < this.maxPopulation) {
+    if (this.population < this.maxPopulation) {
       opts.world = this
       var garp = new Garp(parentA, parentB, this.engine, opts)
       this.inhabitants[garp.id] = garp
@@ -46,7 +43,7 @@ export default class World {
     if (this.stepping) return
     this.stepping = true
 
-    if (this._population === 0) {
+    if (this.population === 0) {
       this._summonInhabitants(this.initialPopulation)
     }
     this.stepping = false
@@ -64,6 +61,16 @@ export default class World {
     return Math.floor(Math.random() * (this.size.y + 1))
   }
 
+  inhabitantsNear (inhabitant) {
+    const sight = _.reduce(
+      this.inhabitants,
+      this._isNearReducer.bind(this, inhabitant),
+      []
+    )
+
+    return sight
+  }
+
   _summonInhabitants (quantity) {
     for (var i = 0; i < quantity; i++) {
       this.addInhabitant(null, null, {
@@ -72,7 +79,7 @@ export default class World {
     }
   }
 
-  get _population () {
+  get population () {
     return Object.keys(this.inhabitants).length
   }
 
@@ -99,13 +106,10 @@ export default class World {
     return sight
   }
 
-  inhabitantsNear (inhabitant) {
-    const sight = _.reduce(
-      this.inhabitants,
-      this._isNearReducer.bind(this, inhabitant),
-      []
-    )
-
-    return sight
+  _initializeEngine (engine) {
+    this.engine = engine
+    this.engine.subscribe('world', (delta, ups) => {
+      this.step(delta)
+    })
   }
 }

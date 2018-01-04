@@ -3,6 +3,7 @@
     "build": "webpack",
     "watch": "webpack --progress --watch",
     "lint": "standard \"src/**/*.js\"",
+    "test": "mocha-webpack spec/unit/**/*.js",
     "start": "webpack-dev-server --open"
   },
   "devDependencies": {
