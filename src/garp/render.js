@@ -1,4 +1,11 @@
 import Camera from '../camera'
+import {
+  IDLE,
+  CHASING,
+  REPRODUCING,
+  WANDERING,
+  DEAD
+} from '../enums/states'
 
 function getGarpColors (garp) {
   let redRatio = 0
@@ -29,23 +36,22 @@ function getGarpColors (garp) {
   }
 }
 
-function drawGarpAura (screen, proportionRatio, garp) {
+export function drawGarpAura (screen, proportionRatio, garp) {
   let style = ''
   switch (garp.state) {
-    case 'idle':
+    case IDLE:
       style = 'rgba(255,255,110, 0.15)'
       break
-    case 'wandering':
+    case WANDERING:
       style = 'rgba(40,255,10, 0.15)'
       break
-    case 'chasing':
+    case CHASING:
       style = 'rgba(240,255,10, 0.15)'
       break
-    case 'reproducing':
-    case 'reproduced':
+    case REPRODUCING:
       style = 'rgba(70,105,120, 0.15)'
       break
-    case 'dead':
+    case DEAD:
       style = 'black'
       break
   }
@@ -94,6 +100,6 @@ function drawGarpBody (screen, proportionRatio, garp) {
   screen.stroke()
 }
 
-export default function drawGarp (screen, proportionRatio, garp) {
+export function drawGarp (screen, proportionRatio, garp) {
   drawGarpBody(screen, proportionRatio, garp)
 }

@@ -32,11 +32,16 @@ export default class World {
   }
 
   addInhabitant (parentA, parentB, opts) {
+    if (parentA && parentB) {
+      console.log(parentA.id, parentB.id);
+    }
     if (this.population < this.maxPopulation) {
       opts.world = this
       var garp = new Garp(parentA, parentB, this.engine, opts)
       this.inhabitants[garp.id] = garp
+      return garp;
     }
+    console.warn('max population achieved')
   }
 
   step (delta) {
@@ -61,14 +66,40 @@ export default class World {
     return Math.floor(Math.random() * (this.size.y + 1))
   }
 
-  inhabitantsNear (inhabitant) {
-    const sight = _.reduce(
-      this.inhabitants,
-      this._isNearReducer.bind(this, inhabitant),
-      []
-    )
+  get population () {
+    return Object.keys(this.inhabitants).length
+  }
 
-    return sight
+  removeCorpse (id) {
+    delete this.inhabitants[id]
+  }
+
+  inhabitantsNear (inhabitant) {
+    const otherInhabitants = _.filter(
+      this.inhabitants,
+      this._notTheSame.bind(null, inhabitant)
+    )
+    const mappedInhabitants = _.map(
+      otherInhabitants,
+      this._isNearMapper.bind(this, inhabitant)
+    )
+    return _.filter(mappedInhabitants, this._isNear)
+  }
+
+  _isNear({distance, garp}) {
+    return distance <= garp.sightRadius;
+  }
+
+  _notTheSame(inhabitant, otherInhabitant) {
+    return inhabitant.id !== otherInhabitant.id
+  }
+
+  _isNearMapper (inhabitant, otherInhabitant) {
+    const distance = this._distanceBetween(inhabitant, otherInhabitant)
+    return { 
+      distance,
+      garp: otherInhabitant
+    }
   }
 
   _summonInhabitants (quantity) {
@@ -79,31 +110,12 @@ export default class World {
     }
   }
 
-  get population () {
-    return Object.keys(this.inhabitants).length
-  }
-
-  removeCorpse (id) {
-    delete this.inhabitants[id]
-  }
-
   _distanceBetween (inhabitant, otherInhabitant) {
     return squareDistance(inhabitant, otherInhabitant)
   }
 
   _isTheSame (inhabitant, possiblyHimself) {
     return inhabitant.id === possiblyHimself.id
-  }
-
-  _isNearReducer (inhabitant, sight, otherInhabitant) {
-    const distance = this._distanceBetween(inhabitant, otherInhabitant)
-    if (distance <= inhabitant.sight) {
-      sight.push({
-        el: inhabitant,
-        distance: distance
-      })
-    }
-    return sight
   }
 
   _initializeEngine (engine) {

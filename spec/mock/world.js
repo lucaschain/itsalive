@@ -2,6 +2,8 @@ import World from '../../src/world'
 import { buildEngine } from './engine'
 
 export function buildWorld (engine = buildEngine()) {
-  return new World(engine)
+  return new World(engine, {
+    initialPopulation: 0
+  })
 }
 

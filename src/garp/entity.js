@@ -1,16 +1,23 @@
 import { forceVector, absoluteClamp } from '../utils/physics'
+import {
+  IDLE,
+  CHASING,
+  REPRODUCING,
+  WANDERING,
+  DEAD
+} from '../enums/states'
 import Reproduction from './reproduction'
 
 export default class Garp {
   constructor (parentA, parentB, engine, options) {
-    this.state = 'idle'
+    this.state = IDLE
     this.base = []
     this.stepping = false
-
 
     this.nextBoostCooldown = 0
     this._initializeParent(parentA)
     this._initializeParent(parentB)
+    this._initializeLifeAndDeath()
     this._initializeDefaultOptions(options)
     this._initializePositioning()
     this._initializeMovement()
@@ -58,30 +65,25 @@ export default class Garp {
     })
   }
 
-  _wander () {
-    if (this.reproduction.recentlyReproduced) {
-      this.reproduction.mate()
-      this.state = 'reproduced'
-    } else {
-      this.state = 'wandering'
-    }
+  _wander() {
+    this.state = WANDERING
     this._randomBoost()
   }
 
   _noticeGarp ({ distance, garp }, delta) {
-    if (this.reproduction.isAbleToReproduce(distance)) {
+    if (this.reproduction.isAbleToReproduce(distance, garp)) {
       this.reproduction.mate()
-      this.world.addInhabitant(this, el, {
+      this.state = REPRODUCING
+      this.world.addInhabitant(this, garp, {
         x: this.x,
         y: this.y,
         parentAID: this.id,
-        parentBID: el.id
+        parentBID: garp.id
       })
-      this.state = 'reproducing'
     } else {
       const attraction = this.calculateNaturalForce(garp, distance)
       this.move(attraction, delta)
-      this.state = 'chasing'
+      this.state = CHASING
     }
   }
 
@@ -92,9 +94,10 @@ export default class Garp {
     this.stepping = true
 
     const garpsInVisionRange = this.seek()
-    if (garpsInVisionRange.length > 0) {
-      garpsInVisionRange.forEach(
-        this._noticeGarp
+    if (garpsInVisionRange.length > 0 && !this.reproduction.recentlyReproduced) {
+      const garpsOfInterest = this._nearestGarps(garpsInVisionRange)
+      garpsOfInterest.forEach(
+        this._noticeGarp.bind(this)
       )
     } else {
       this._wander()
@@ -102,7 +105,7 @@ export default class Garp {
 
     this.growOld(delta)
     this.applyMovement(delta)
-    this.reproduction.step()
+    this.reproduction.step(delta)
     this.stepping = false
   }
 
@@ -128,37 +131,37 @@ export default class Garp {
     return this.world.inhabitantsNear(this)
   }
 
-  calculateNaturalForce (el, distance) {
+  calculateNaturalForce (otherGarp, distance) {
     var naturalBaseA = this.naturalBase()
-    var naturalBaseB = el.naturalBase()
+    var naturalBaseB = otherGarp.naturalBase()
 
     var sum = 0
     var totalProps = naturalBaseA.length
 
     for (var i = 0; i < totalProps; i++) {
       var aVal = naturalBaseA[i] * this.nature
-      var bVal = naturalBaseB[i] * el.nature
+      var bVal = naturalBaseB[i] * otherGarp.nature
 
-      sum += (aVal + bVal)
+      sum += (aVal + bVal) * 3
     }
 
-    var vect = forceVector(this, el, sum)
+    var vect = forceVector(this, otherGarp, sum)
 
     return vect
   }
 
   naturalBase () {
-    var naturalBase = []
-    for (var bi in this.base) {
-      if (bi === 0) {
-        naturalBase.push(this.base[bi])
-      } else if (this.nature === 1 && parseInt(bi) % 2 === 0) {
-        naturalBase.push(this.base[bi])
-      } else if (this.nature === -1 && parseInt(bi) % 2 !== 0) {
-        naturalBase.push(this.base[bi])
+    return this.base.map((baseItem, index) => {
+      const isZeroIndex = index === 0
+      const isEvenIndexAndPositiveNature = (this.nature === 1 && parseInt(index) % 2 === 0)
+      const isOddIndexAndNegativeNature = (this.nature === -1 && parseInt(index) % 2 !== 0)
+
+      if (isZeroIndex || isEvenIndexAndPositiveNature || isOddIndexAndNegativeNature) {
+        return baseItem
+      } else {
+        return -baseItem
       }
-    }
-    return naturalBase
+    })
   }
 
   boostTo (force) {
@@ -192,7 +195,7 @@ export default class Garp {
   }
 
   die () {
-    this.state = 'dead'
+    this.state = DEAD
     this.engine.unsubscribe(this.id)
     this.world.removeCorpse(this.id)
   }
@@ -211,7 +214,16 @@ export default class Garp {
   }
 
   get sightRadius () {
-    return 7
+    return 8
+  }
+
+  _nearestGarps(garpsInVisionRange) {
+    const nearest = _.chain(garpsInVisionRange)
+      .sortBy('distance')
+      .slice(0, 2)
+      .value()
+
+    return nearest
   }
 
   _initializeID () {
@@ -234,7 +246,7 @@ export default class Garp {
 
   _initializeMovement () {
     this.friction = 0.95
-    this.boostFactor = 2
+    this.boostFactor = 8
     this.accel = {
       x: 0,
       y: 0

@@ -1,4 +1,4 @@
-import drawGarp from './garp/render'
+import { drawGarp, drawGarpAura } from './garp/render'
 
 class Camera {
   constructor (world, engine, options) {
@@ -42,9 +42,8 @@ class Camera {
 
     const garps = this.world.inhabitants
     for (let g in garps) {
-      // this.drawGarpLines(garps[g])
       drawGarp(this.screen, this.proportionRatio, garps[g])
-      // this.drawGarpAura(garps[g])
+      // drawGarpAura(this.screen, this.proportionRatio, garps[g])
     }
   }
 }

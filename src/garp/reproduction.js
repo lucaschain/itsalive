@@ -17,15 +17,15 @@ export default class Reproduction {
     this.reproductionCooldown -= delta
   }
 
-  isAbleToReproduce (distance) {
-    const isNearEnoughToReproduce = this.isNearEnoughToReproduce(distance)
-    const recentlyReproduced = this.recentlyReproduced
+  isAbleToReproduce (distance, garp) {
+    const isNearEnoughToReproduce = this._isNearEnoughToReproduce(distance)
+    const noOneRecentlyReproduced = !this.recentlyReproduced && !garp.reproduction.recentlyReproduced
 
-    return isNearEnoughToReproduce && !recentlyReproduced
+    return isNearEnoughToReproduce && noOneRecentlyReproduced
   }
 
   _isNearEnoughToReproduce (distance) {
-    distance <= this.reproductionDistance
+    return distance <= this.reproductionDistance
   }
 
   _resetReproductionCooldown () {

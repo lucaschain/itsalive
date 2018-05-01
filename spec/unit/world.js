@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { buildEngine } from '../helpers/engine'
+import { buildEngine } from '../mock/engine'
 import World from '../../src/world/'
 
 context('when creating world', function() {

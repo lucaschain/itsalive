@@ -1,0 +1,5 @@
+export const IDLE = Symbol('idle')
+export const CHASING = Symbol('chasing')
+export const REPRODUCING = Symbol('reproducing')
+export const WANDERING = Symbol('wandering')
+export const DEAD = Symbol('dead')
