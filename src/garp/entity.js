@@ -65,7 +65,7 @@ export default class Garp {
     })
   }
 
-  _wander() {
+  _wander () {
     this.state = WANDERING
     this._randomBoost()
   }
@@ -217,7 +217,7 @@ export default class Garp {
     return 8
   }
 
-  _nearestGarps(garpsInVisionRange) {
+  _nearestGarps (garpsInVisionRange) {
     const nearest = _.chain(garpsInVisionRange)
       .sortBy('distance')
       .slice(0, 2)
@@ -258,7 +258,7 @@ export default class Garp {
     this.nextBoostTime = 2
   }
 
-  _initializeParent(parent) {
+  _initializeParent (parent) {
     if (this.parentAID === undefined) {
       this.parentAID = parent ? parent.id : false
     } else {

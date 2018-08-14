@@ -13,12 +13,12 @@ export function squareDistance (a, b) {
 function absoluteLimit (limit) {
   if (limit > 0) {
     return {
-      maxLimit: limit, 
+      maxLimit: limit,
       minLimit: -limit
     }
   }
   return {
-    maxLimit: -limit, 
+    maxLimit: -limit,
     minLimit: limit
   }
 }

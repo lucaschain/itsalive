@@ -33,13 +33,13 @@ export default class World {
 
   addInhabitant (parentA, parentB, opts) {
     if (parentA && parentB) {
-      console.log(parentA.id, parentB.id);
+      console.log(parentA.id, parentB.id)
     }
     if (this.population < this.maxPopulation) {
       opts.world = this
       var garp = new Garp(parentA, parentB, this.engine, opts)
       this.inhabitants[garp.id] = garp
-      return garp;
+      return garp
     }
     console.warn('max population achieved')
   }
@@ -86,17 +86,17 @@ export default class World {
     return _.filter(mappedInhabitants, this._isNear)
   }
 
-  _isNear({distance, garp}) {
-    return distance <= garp.sightRadius;
+  _isNear ({distance, garp}) {
+    return distance <= garp.sightRadius
   }
 
-  _notTheSame(inhabitant, otherInhabitant) {
+  _notTheSame (inhabitant, otherInhabitant) {
     return inhabitant.id !== otherInhabitant.id
   }
 
   _isNearMapper (inhabitant, otherInhabitant) {
     const distance = this._distanceBetween(inhabitant, otherInhabitant)
-    return { 
+    return {
       distance,
       garp: otherInhabitant
     }
