@@ -5,7 +5,7 @@
     "lint": "standard \"src/**/*.js\"",
     "lint:fix": "standard --fix \"src/**/*.js\"",
     "test": "mocha-webpack spec/unit/**/*.js",
-    "deploy": "git subtree push --prefix public origin gh-pages",
+    "deploy": "git subtree push --prefix dist origin gh-pages",
     "start": "webpack-dev-server --open"
   },
   "devDependencies": {
